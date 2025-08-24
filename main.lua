@@ -11,7 +11,10 @@ local game = {
         paused = false,
         running = false,
         ended = false
-    }
+    },
+    points = 0,
+    levels = {15 , 30 , 60 , 120}
+    
 
 }
 local player = {
@@ -24,10 +27,20 @@ local buttons = {
 }
 local enemies = {}
 
+local function ChangeGameState(state)
+    game.state["menu"] = state == "menu"
+    game.state["paused"] = state == "paused"
+    game.state["running"] = state == "running"
+    game.state["ended"] = state == "ended"
+end
+
 local function StartNewGame()
-    game.state["menu"] = false
-    game.state["running"] = true
-    table.insert(enemies, 1, enemy())
+    ChangeGameState("running")
+    game.points = 0
+    
+    enemies = {
+        enemy(1)
+    }
 
 end
 
@@ -51,13 +64,27 @@ function love.load()
     buttons.menu_state.exit_game = button("Exit", love.event.quit, nil, 120, 40)
 end
 
-function love.update()
+function love.update(dt)
     player.x, player.y = love.mouse.getPosition()
 
     if game.state["running"] then
         for i = 1, #enemies do
-            enemies[i]:move(player.x, player.y)
+            if not enemies[i]:checkTouched(player.x,player.y,player.radius)then
+                enemies[i]:move(player.x, player.y)
+
+                for i = 1 , #game.levels do
+                    if math.floor(game.points) == game.levels[i] then
+                        table.insert(enemies , 1 ,enemy(game.difficulty * (i + 1)))
+
+                        game.points = game.points + 1
+                    end
+                end
+            else
+                ChangeGameState("menu")
+            end
+            
         end
+        game.points = game.points + dt
     end
 
 end
@@ -66,6 +93,7 @@ function love.draw()
     love.graphics.printf("FPS:" .. love.timer.getFPS(), love.graphics.newFont(16), 10, love.graphics.getHeight() - 30,
         love.graphics.getWidth())
     if game.state["running"] then
+        love.graphics.printf(math.floor(game.points),love.graphics.newFont(24),0,10,love.graphics.getWidth(),"center")
         for i = 1, #enemies do
             enemies[i]:draw()
         end
