@@ -3,7 +3,11 @@ local enemy = require("Enemy")
 local button = require("Button")
 
 math.randomseed(os.time())
-
+local file = io.open("highScore.txt", "r")
+if not file then
+    print("error");
+    return;
+end
 local game = {
     difficulty = 1,
     state = {
@@ -12,11 +16,12 @@ local game = {
         running = false,
         ended = false
     },
-    highScore = 0,
+    highScore = tonumber(file:read("*all")) or 0,
     points = 0,
-    levels = {15,25, 30,50, 60, 120}
+    levels = {15, 30, 45, 80}
 
 }
+
 local fonts = {
     medium = {
         font = love.graphics.newFont(16),
@@ -89,23 +94,31 @@ function love.update(dt)
     player.x, player.y = love.mouse.getPosition()
 
     if game.state["running"] then
-        
+
         for i = 1, #enemies do
             if not enemies[i]:checkTouched(player.x, player.y, player.radius) then
                 enemies[i]:move(player.x, player.y)
 
                 for i = 1, #game.levels do
                     if math.floor(game.points) == game.levels[i] then
-                        table.insert(enemies, 1, enemy(game.difficulty * (i + 2)))
+                        table.insert(enemies, 1, enemy(game.difficulty * (i + 1)))
 
                         game.points = game.points + 1
                     end
                 end
             else
                 ChangeGameState("ended")
+
                 if game.points > game.highScore then
                     game.highScore = game.points
-        
+                    local file = io.open("highScore.txt", "w")
+                    if file then
+                        file:write(game.highScore)
+                        file:close()
+                    else
+                        print("Error: could not open file to save high score")
+                    end
+
                 end
             end
 
@@ -119,11 +132,12 @@ function love.draw()
     love.graphics.setFont(fonts.medium.font)
     love.graphics.printf("FPS:" .. love.timer.getFPS(), fonts.medium.font, 10, love.graphics.getHeight() - 30,
         love.graphics.getWidth())
-        
+
     if game.state["running"] then
         love.graphics.printf(math.floor(game.points), fonts.large.font, 0, 10, love.graphics.getWidth(), "center")
-        love.graphics.printf("High Score : " .. math.floor(game.highScore), fonts.medium.font, 10, 10,love.graphics.getWidth(),"left")
-        
+        love.graphics.printf("High Score : " .. math.floor(game.highScore), fonts.medium.font, 10, 10,
+            love.graphics.getWidth(), "left")
+
         for i = 1, #enemies do
             enemies[i]:draw()
         end
